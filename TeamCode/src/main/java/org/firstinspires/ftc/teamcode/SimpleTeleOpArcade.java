@@ -30,14 +30,14 @@ public class SimpleTeleOpArcade extends OpMode {
         turnPower = gamepad1.right_stick_x;
 
         // toggles the drive speed between 0.5 and 1.0
-        // by pressing the left bumper
+        // by pressing the right and left bumper
         if (gamepad1.left_bumper) {
-            if (driveSpeed == 0.5) {
-                driveSpeed = 1.0;
-            } else {
-                driveSpeed = 0.5;
-            }
+            driveSpeed = 0.5;
         }
+        if (gamepad1.right_bumper) {
+            driveSpeed = 1.0;
+        }
+
         arcadeDrive(leftPower, turnPower, driveSpeed);
         updateTelemetry();
     }
