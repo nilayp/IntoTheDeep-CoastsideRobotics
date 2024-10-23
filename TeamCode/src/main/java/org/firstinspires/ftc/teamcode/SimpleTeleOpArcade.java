@@ -15,8 +15,8 @@ public class SimpleTeleOpArcade extends OpMode {
     double turnPower;
 
     public void init() {
-        backLeftDrive = hardwareMap.dcMotor.get("back_left_motor");
-        backRightDrive = hardwareMap.dcMotor.get("back_right_motor");
+        backLeftDrive = hardwareMap.dcMotor.get("rearLeftDrive");
+        backRightDrive = hardwareMap.dcMotor.get("rearRightDrive");
 
         // reverses the left motor because it is mounted upside down
        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
