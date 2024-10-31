@@ -27,11 +27,11 @@ public class SimpleTeleOpArcade extends OpMode {
        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // starts the robot at full speed
-        driveSpeed = 1.0;
+        driveSpeed = 0.75;
     }
     public void loop() {
         leftPower = -gamepad1.left_stick_y;
-        turnPower = gamepad1.left_stick_x;
+        turnPower = gamepad1.right_stick_x;
 
         // toggles the drive speed between 0.5 and 1.0
         // by pressing the right and left bumper
@@ -39,7 +39,7 @@ public class SimpleTeleOpArcade extends OpMode {
             driveSpeed = 0.5;
         }
         if (gamepad1.right_bumper) {
-            driveSpeed = 1.0;
+            driveSpeed = 0.75;
         }
 
         arcadeDrive(leftPower, turnPower, driveSpeed);
