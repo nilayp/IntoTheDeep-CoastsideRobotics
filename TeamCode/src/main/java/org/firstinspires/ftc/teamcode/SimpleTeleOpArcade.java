@@ -11,7 +11,12 @@ public class SimpleTeleOpArcade extends OpMode {
 
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
+    DcMotor liftArmMotor;
 
+    // Specify positions for the lift arm
+    int liftArmPositionTuckedIn = 0;
+    int liftArmPositionScoringTopBasket = 360;
+    int liftArmPositionClimbLowerRung = 563;
     Servo clawServo;
 
     double driveSpeed;
@@ -21,12 +26,17 @@ public class SimpleTeleOpArcade extends OpMode {
     public void init() {
         backLeftDrive = hardwareMap.dcMotor.get("rearLeftDrive");
         backRightDrive = hardwareMap.dcMotor.get("rearRightDrive");
+        liftArmMotor = hardwareMap.dcMotor.get("liftArmMotor");
         clawServo = hardwareMap.servo.get("claw");
 
-        // reverses the left & lift arm motor because it is mounted upside down
+        // reverses the left & lift arm motors because they are mounted backwards
        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+       liftArmMotor.setDirection(DcMotor.Direction.REVERSE);
 
-        // starts the robot at full speed
+       liftArmMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+       liftArmMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+       liftArmMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         // starts the robot at 0.75 speed
         driveSpeed = 0.75;
     }
@@ -45,9 +55,43 @@ public class SimpleTeleOpArcade extends OpMode {
 
         arcadeDrive(leftPower, turnPower, driveSpeed);
         clawServo(gamepad2.right_trigger);
+
+        if (gamepad2.dpad_up){
+            liftArmToPosition(liftArmPositionScoringTopBasket);
+        } else if (gamepad2.dpad_down) {
+            liftArmToPosition(liftArmPositionTuckedIn);
+        } else if (gamepad2.dpad_right) {
+            liftArmIncrement(true);
+        } else if (gamepad2.dpad_left) {
+            liftArmIncrement(false);
+        }
+
         updateTelemetry();
     }
 
+    private void liftArmToPosition(int position) {
+        liftArmMotor.setTargetPosition(position);
+        System.out.println("Lift arm to position: " + position);
+        liftArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        liftArmMotor.setPower(0.30);
+    }
+    private void liftArmIncrement(boolean isMovingUp) {
+        // increments the lift arm motor by 10, but first checks if the arm should be moved
+        // up or down based on the current position. We don't want the arm to move past a certain
+        // point or the robot may tip over.
+
+        int currentPosition = liftArmMotor.getCurrentPosition();
+        int increment = 10;
+        if (isMovingUp) {
+            if ((currentPosition + increment) <= liftArmPositionClimbLowerRung) {
+                liftArmToPosition(currentPosition + increment);
+            }
+        } else {
+            if (currentPosition - increment >= liftArmPositionTuckedIn) {
+                liftArmToPosition(currentPosition - increment);
+            }
+        }
+    }
     private void clawServo(double position) {
         clawServo.setPosition(position);
     }
@@ -73,6 +117,7 @@ public class SimpleTeleOpArcade extends OpMode {
         telemetry.addData("Drive Speed", driveSpeed);
         telemetry.addData("Left Power (Motor)", backLeftDrive.getPower());
         telemetry.addData("Right Power (Motor)", backRightDrive.getPower());
+        telemetry.addData("Lift Arm Position (Motor)", liftArmMotor.getCurrentPosition());
         telemetry.addData("Claw Position (Servo)", clawServo.getPosition());
         telemetry.update();
     }
