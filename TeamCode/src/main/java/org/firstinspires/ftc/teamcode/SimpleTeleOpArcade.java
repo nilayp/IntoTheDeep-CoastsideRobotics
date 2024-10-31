@@ -27,6 +27,7 @@ public class SimpleTeleOpArcade extends OpMode {
        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // starts the robot at full speed
+        // starts the robot at 0.75 speed
         driveSpeed = 0.75;
     }
     public void loop() {
