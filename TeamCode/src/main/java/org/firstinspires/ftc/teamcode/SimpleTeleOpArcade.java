@@ -41,7 +41,6 @@ public class SimpleTeleOpArcade extends OpMode {
         driveSpeed = 0.75;
     }
     public void loop() {
-        leftPower = -gamepad1.left_stick_y;
         turnPower = gamepad1.right_stick_x;
 
         // toggles the drive speed between 0.5 and 1.0
