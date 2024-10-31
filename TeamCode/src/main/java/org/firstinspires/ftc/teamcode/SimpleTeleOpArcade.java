@@ -23,7 +23,7 @@ public class SimpleTeleOpArcade extends OpMode {
         backRightDrive = hardwareMap.dcMotor.get("rearRightDrive");
         clawServo = hardwareMap.servo.get("claw");
 
-        // reverses the left motor because it is mounted upside down
+        // reverses the left & lift arm motor because it is mounted upside down
        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // starts the robot at full speed
