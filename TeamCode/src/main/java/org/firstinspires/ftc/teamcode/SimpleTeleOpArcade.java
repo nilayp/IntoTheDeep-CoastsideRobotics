@@ -110,7 +110,6 @@ public class SimpleTeleOpArcade extends OpMode {
 
     private void liftArmToPosition(int position) {
         liftArmMotor.setTargetPosition(position);
-        System.out.println("Lift arm to position: " + position);
         liftArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         liftArmMotor.setPower(0.30);
     }
