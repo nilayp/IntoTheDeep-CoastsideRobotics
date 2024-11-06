@@ -15,7 +15,9 @@ public class SimpleTeleOpArcade extends OpMode {
 
     // Specify positions for the lift arm
     int liftArmPositionTuckedIn = 0;
-    int liftArmPositionScoringTopBasket = 360;
+
+    int liftArmPositionPickupUnderSub = 120;
+    int liftArmPositionScoringBottomBasket = 380;
     int liftArmPositionClimbLowerRung = 563;
     Servo clawServo;
 
@@ -64,6 +66,9 @@ public class SimpleTeleOpArcade extends OpMode {
 
         // starts the arm power at slow speed
         armPowerSpeed = 0.3;
+
+        // close the claw
+        clawServo(1.0);
     }
     public void loop() {
         leftPower = gamepad1.left_stick_y;
@@ -82,19 +87,21 @@ public class SimpleTeleOpArcade extends OpMode {
         clawServo(gamepad2.right_trigger);
 
         if (gamepad2.dpad_up){
-            liftArmToPosition(liftArmPositionScoringTopBasket);
+            liftArmToPosition(liftArmPositionScoringBottomBasket);
         } else if (gamepad2.dpad_down) {
             liftArmToPosition(liftArmPositionTuckedIn);
         } else if (gamepad2.dpad_right) {
             liftArmIncrement(true);
         } else if (gamepad2.dpad_left) {
             liftArmIncrement(false);
+        } else if (gamepad2.circle) {
+            liftArmToPosition(liftArmPositionPickupUnderSub);
         }
 
         // if the armPower is greater than 0, the arm will extend out. If the armPower is less than 0,
         // the arm will retract. If the armPower is 0, the arm will stop where it is.
 
-        armPower = -gamepad2.left_stick_x;
+        armPower = -gamepad2.right_stick_y;
 
         // throttles the arm power by pressing the left or right bumper
 
