@@ -15,25 +15,15 @@ public class SimpleTeleOpArcade extends OpMode {
 
     // Specify positions for the lift arm
     int liftArmPositionTuckedIn = 0;
-
-    int liftArmPositionPickupUnderSub = 120;
-    int liftArmPositionScoringBottomBasket = 380;
-    int liftArmPositionClimbLowerRung = 563;
+    int liftArmPositionPickupUnderSub = 132;
+    int liftArmPositionScoringBottomBasket = 636;
+    int liftArmPositionScoringTopBasket = 845;
+    int liftArmPositionClimbLowerRung = 1000;
     Servo clawServo;
+    Servo extendArmServo;
+    double extensionTarget = 1.0; //extension target position; also the position at startup
+    double manualExtend = 0.005; //this is the manual extension factor bigger moves faster**ADJUST THIS NUMBER AS NEEDED!**
 
-    DcMotor extendArmMotor;
-    int extendArmPositionTuckedIn = 0;
-
-    // The positions specified are in negative numbers because there is something
-    // wrong with the encoder. It seems that the encoder is reversed from the motor. As
-    // the FTC SDK doesn't have a way to reverse the encoder on it's own, we can't currently
-    // use the RUN_TO_POSITION mode. We will need to use the RUN_USING_ENCODER mode and manually
-    // controller it with the joystick. This is a temporary solution until we can figure out
-    // how to reverse the encoder or fix whatever is wrong with the motor. Lastly, the encoder
-    // values will be used to limit the range of motion to prevent damage to the extend arm mechanism.
-
-    int extendArmPickTuckedIn = 0;
-    int extendArmTopBasket = -1100;
     double armPower;
     double armPowerSpeed;
 
@@ -45,21 +35,19 @@ public class SimpleTeleOpArcade extends OpMode {
         backLeftDrive = hardwareMap.dcMotor.get("rearLeftDrive");
         backRightDrive = hardwareMap.dcMotor.get("rearRightDrive");
         liftArmMotor = hardwareMap.dcMotor.get("liftArmMotor");
-        extendArmMotor = hardwareMap.dcMotor.get("extendArmMotor");
+        extendArmServo = hardwareMap.servo.get("extendArmServo");
         clawServo = hardwareMap.servo.get("claw");
 
         // reverses the left, lift and extend arm motors because they are mounted backwards
        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
        liftArmMotor.setDirection(DcMotor.Direction.REVERSE);
-       extendArmMotor.setDirection(DcMotor.Direction.REVERSE);
 
        liftArmMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
        liftArmMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
        liftArmMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-       extendArmMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       extendArmMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       extendArmMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+       // retract the arm
+       extendArmServo();
 
         // starts the robot at 0.75 speed
         driveSpeed = 0.75;
@@ -69,9 +57,11 @@ public class SimpleTeleOpArcade extends OpMode {
 
         // close the claw
         clawServo(1.0);
+        updateTelemetry();
+
     }
     public void loop() {
-        leftPower = gamepad1.left_stick_y;
+        leftPower = -gamepad1.left_stick_y;
         turnPower = gamepad1.right_stick_x;
 
         // toggles the drive speed between 0.5 and 1.0
@@ -82,36 +72,30 @@ public class SimpleTeleOpArcade extends OpMode {
         if (gamepad1.right_bumper) {
             driveSpeed = 0.75;
         }
-
         arcadeDrive(leftPower, turnPower, driveSpeed);
         clawServo(gamepad2.right_trigger);
+        extendArmServo();
 
-        if (gamepad2.dpad_up){
+        if (gamepad2.triangle) {
+            liftArmToPosition(liftArmPositionScoringTopBasket);
+        }else if (gamepad2.circle) {
             liftArmToPosition(liftArmPositionScoringBottomBasket);
+        } else if (gamepad2.x) { // the square button on the PS4
+            liftArmToPosition(liftArmPositionClimbLowerRung);
+        } else if (gamepad2.cross) { // the x button on the PS4
+            liftArmToPosition(liftArmPositionPickupUnderSub);
         } else if (gamepad2.dpad_down) {
             liftArmToPosition(liftArmPositionTuckedIn);
         } else if (gamepad2.dpad_right) {
             liftArmIncrement(true);
         } else if (gamepad2.dpad_left) {
             liftArmIncrement(false);
-        } else if (gamepad2.circle) {
-            liftArmToPosition(liftArmPositionPickupUnderSub);
         }
 
         // if the armPower is greater than 0, the arm will extend out. If the armPower is less than 0,
         // the arm will retract. If the armPower is 0, the arm will stop where it is.
 
         armPower = -gamepad2.right_stick_y;
-
-        // throttles the arm power by pressing the left or right bumper
-
-        if (gamepad2.left_bumper) {
-            armPowerSpeed = 0.3;
-        } else if (gamepad2.right_bumper) {
-            armPowerSpeed = 0.6;
-        }
-
-        extendArm(armPower);
         updateTelemetry();
     }
 
@@ -137,17 +121,23 @@ public class SimpleTeleOpArcade extends OpMode {
             }
         }
     }
-    private void extendArm(double power) {
-
-        // Use the encoder values to limit the range of motion of the extend arm mechanism
-        // to prevent damage to the robot.
-
-        int currentPosition = extendArmMotor.getCurrentPosition();
-        if ((power > 0 && currentPosition > extendArmTopBasket) ||
-            (power < 0 && currentPosition < extendArmPickTuckedIn)) {
-            extendArmMotor.setPower(power * armPowerSpeed);
-        } else {
-            extendArmMotor.setPower(0);
+    private void extendArmServo() {
+        extendArmServo.setPosition(extensionTarget);
+        if (gamepad2.left_bumper){ //manual extension in
+            if (extensionTarget <= 1){
+                extensionTarget = extensionTarget + manualExtend;
+            }
+            else if (extensionTarget > 1){
+                extensionTarget = 1;
+            }
+        }
+        else if (gamepad2.left_trigger > 0){ //manual extension out
+            if (extensionTarget > 0){
+                extensionTarget = extensionTarget - manualExtend;
+            }
+            else if (extensionTarget <0){
+                extensionTarget = 0;
+            }
         }
     }
     private void clawServo(double position) {
@@ -176,11 +166,10 @@ public class SimpleTeleOpArcade extends OpMode {
         telemetry.addData("Left Power (Motor)", backLeftDrive.getPower());
         telemetry.addData("Right Power (Motor)", backRightDrive.getPower());
         telemetry.addData("Lift Arm Position (Motor)", liftArmMotor.getCurrentPosition());
-        telemetry.addData("Extend Arm Position (Motor)", extendArmMotor.getCurrentPosition());
+        telemetry.addData("Extend Arm Position (Servo)", extendArmServo.getPosition());
         telemetry.addData("Extend Arm Power (Motor)", (armPower * armPowerSpeed));
         telemetry.addData("Extend Arm Power Speed", armPowerSpeed);
         telemetry.addData("Claw Position (Servo)", clawServo.getPosition());
         telemetry.update();
     }
-
 }
