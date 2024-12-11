@@ -15,7 +15,8 @@ public class SimpleTeleOpArcade extends OpMode {
 
     // Specify positions for the lift arm
     int liftArmPositionTuckedIn = 0;
-    int liftArmPositionPickupUnderSub = 132;
+    int liftArmPositionLowerPosition = 132;
+    int liftArmPositionPickupUnderSub = 230;
     int liftArmPositionScoringBottomBasket = 636;
     int liftArmPositionScoringTopBasket = 845;
     int liftArmPositionClimbLowerRung = 1000;
@@ -81,9 +82,9 @@ public class SimpleTeleOpArcade extends OpMode {
         }else if (gamepad2.circle) {
             liftArmToPosition(liftArmPositionScoringBottomBasket);
         } else if (gamepad2.x) { // the square button on the PS4
-            liftArmToPosition(liftArmPositionClimbLowerRung);
-        } else if (gamepad2.cross) { // the x button on the PS4
             liftArmToPosition(liftArmPositionPickupUnderSub);
+        } else if (gamepad2.cross) { // the x button on the PS4
+            liftArmToPosition(liftArmPositionLowerPosition);
         } else if (gamepad2.dpad_down) {
             liftArmToPosition(liftArmPositionTuckedIn);
         } else if (gamepad2.dpad_right) {
