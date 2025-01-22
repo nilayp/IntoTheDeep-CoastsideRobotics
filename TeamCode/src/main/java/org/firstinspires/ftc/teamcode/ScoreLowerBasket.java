@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -15,8 +14,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-@Autonomous(name="Autonomous", group="Robot")
-public class SimpleAutonomous extends LinearOpMode {
+@Autonomous(name="ScoreLowerBasket", group="Robot")
+public class ScoreLowerBasket extends LinearOpMode {
 
     DcMotor backLeftDrive;
     DcMotor backRightDrive;
@@ -24,22 +23,16 @@ public class SimpleAutonomous extends LinearOpMode {
     Servo clawServo;
     Servo extendArmServo;
 
-    ColorSensor frontColorSensor;
-    int frontRedPercent;
-    int frontBluePercent;
-    int frontGreenPercent;
-
-
     boolean armRaised = false;
     boolean departedWall = false;
     boolean turnedLeft = false;
     boolean distanceSensorTriggered = false;
-    boolean crossedColorLine = false;
     boolean rotateAtBasket = false;
     boolean extendArmOut = false;
     boolean clawRetracted = false;
     boolean extendArmIn = false;
     boolean armDropped = false;
+    boolean backupAfterBasket = false;
     DistanceSensor frontDistanceSensor;
 
     IMU imu;
@@ -48,10 +41,7 @@ public class SimpleAutonomous extends LinearOpMode {
     RevHubOrientationOnRobot.UsbFacingDirection  usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.DOWN;
 
     int liftArmPositionTuckedIn = 0;
-    int liftArmPositionCarrySample = 300;
-    int liftArmPositionScoringBottomBasket = 636;
-    int liftArmPositionScoringTopBasket = 845;
-    int liftArmPositionClimbLowerRung = 1000;
+    int liftArmPositionScoringBottomBasket = 551;
 
     @Override
     public void runOpMode() {
@@ -60,7 +50,6 @@ public class SimpleAutonomous extends LinearOpMode {
         liftArmMotor = hardwareMap.dcMotor.get("liftArmMotor");
         extendArmServo = hardwareMap.servo.get("extendArmServo");
         clawServo = hardwareMap.servo.get("claw");
-        frontColorSensor = hardwareMap.colorSensor.get("frontColorSensor");
         frontDistanceSensor = hardwareMap.get(DistanceSensor.class, "frontDistanceSensor");
         imu = hardwareMap.get(IMU.class, "imu");
 
@@ -82,7 +71,6 @@ public class SimpleAutonomous extends LinearOpMode {
         clawServo.setPosition(1.0);
         extendArmServo.setPosition(1.0);
 
-        getColorPercentages();
         updateTelemetry();
 
         waitForStart();
@@ -93,9 +81,10 @@ public class SimpleAutonomous extends LinearOpMode {
             // - depart the wall
             // - turn left 90 degrees
             // - drive forward until you are close to the wall
-            // - rotate to 122 degrees of the starting position (~30 degrees from current position)
+            // - rotate to 105 degrees of the starting position (~30 degrees from current position)
             // - extend the arm out
             // - retract the claw
+            // - backup to avoid touching the basket upon retracting the claw
             // - retract the arm
             // - lower the arm to the starting position
             // Each of these actions sets a boolean value true so they aren't
@@ -106,22 +95,23 @@ public class SimpleAutonomous extends LinearOpMode {
             } else if (!departedWall) {
                 driveWithDuration(0.5, 500, "departedWall", true);
             } else if (!turnedLeft) {
-                leftTurn(0.2);
+                leftTurn(0.3);
             } else if (!distanceSensorTriggered){
-                // Move forward until we hit color line.
+                // Move forward until we get close enough to the wall.
                 driveForwardUntilNearWall(0.4);
             } else if (!rotateAtBasket) {
-                rotate(122, 0.2, "rotateAtBasket", true);
+                rotate(105, 0.3, "rotateAtBasket", true);
             } else if (!extendArmOut) {
-                toggleExtendArm(0.4, "extendArmOut", true, 1000);
+                toggleExtendArm(0.6, "extendArmOut", true, 1000);
             } else if (!clawRetracted) {
                 toggleClawServo(0.0, "clawRetracted", true);
+            } else if (!backupAfterBasket) {
+                driveWithDuration(-0.5, 500, "backupAfterBasket", true);
             } else if (!extendArmIn) {
                 toggleExtendArm(1.0, "extendArmIn", true, 1000);
             } else if (!armDropped) {
                 moveArmToPosition(liftArmPositionTuckedIn, "armDropped", true);
             }
-
             updateTelemetry();
         }
     }
@@ -136,43 +126,10 @@ public class SimpleAutonomous extends LinearOpMode {
         }
     }
 
-    private void getColorPercentages() {
-        int frontRightRed = frontColorSensor.red();
-        int frontRightBlue = frontColorSensor.blue();
-        int frontRightGreen = frontColorSensor.green();
-
-        int total = frontRightRed + frontRightBlue + frontRightGreen;
-        frontRedPercent = (frontRightRed * 100) / total;
-        frontBluePercent = (frontRightBlue * 100) / total;
-        frontGreenPercent = (frontRightGreen * 100) / total;
-    }
-
-    private void driveForwardUntilColorLine(double power) {
-
-        // Stop if the front distance sensor detects an object within 17 inches
-        if (frontDistanceSensor.getDistance(DistanceUnit.INCH) < 22) {
-            drive(0.0);
-            crossedColorLine = true;
-        } else {
-            getColorPercentages();
-            if (frontBluePercent > 60) {
-                crossedColorLine = true;
-                drive(0.0);
-            } else if (frontRedPercent > 50) {
-                crossedColorLine = true;
-                drive(0.0);
-            } else if (crossedColorLine) {
-                drive(0.0);
-            } else {
-                drive(power);
-            }
-        }
-    }
-
     private void driveForwardUntilNearWall(double power) {
-
-        // Stop if the front distance sensor detects an object within 17 inches
-        if (frontDistanceSensor.getDistance(DistanceUnit.INCH) < 22) {
+        drive(power);
+        // Stop if the front distance sensor detects an object within 16 inches
+        if (frontDistanceSensor.getDistance(DistanceUnit.INCH) < 16) {
             drive(0.0);
             distanceSensorTriggered = true;
         }
@@ -189,6 +146,9 @@ public class SimpleAutonomous extends LinearOpMode {
         switch (fieldName) {
             case "departedWall":
                 departedWall = value;
+                break;
+            case "backupAfterBasket":
+                backupAfterBasket = value;
                 break;
         }
         drive(0.0);
@@ -257,9 +217,6 @@ public class SimpleAutonomous extends LinearOpMode {
     }
 
     public void updateTelemetry() {
-        telemetry.addData("Front Right Red %", frontRedPercent);
-        telemetry.addData("Front Right Blue %", frontBluePercent);
-
         YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
         AngularVelocity angularVelocity = imu.getRobotAngularVelocity(AngleUnit.DEGREES);
 
@@ -277,6 +234,7 @@ public class SimpleAutonomous extends LinearOpMode {
         telemetry.addData("rotateAtBasketStatus", rotateAtBasket);
         telemetry.addData("extendArmOutStatus", extendArmOut);
         telemetry.addData("clawRetractedStatus", clawRetracted);
+        telemetry.addData("backupAfterBasketStatus", backupAfterBasket);
         telemetry.addData("extendArmInStatus", extendArmIn);
         telemetry.addData("armDroppedStatus", armDropped);
 

@@ -17,9 +17,11 @@ public class SimpleTeleOpArcade extends OpMode {
     int liftArmPositionTuckedIn = 0;
     int liftArmPositionLowerPosition = 132;
     int liftArmPositionPickupUnderSub = 230;
-    int liftArmPositionScoringBottomBasket = 636;
+    int liftArmPositionScoringBottomBasket = 551;
     int liftArmPositionScoringTopBasket = 845;
-    int liftArmPositionClimbLowerRung = 1000;
+    int liftArmPositionMaxTall = 1500;
+    int liftArmPositionClimbLowerRung = 1435;
+
     Servo clawServo;
     Servo extendArmServo;
     double extensionTarget = 1.0; //extension target position; also the position at startup
@@ -78,19 +80,23 @@ public class SimpleTeleOpArcade extends OpMode {
         extendArmServo();
 
         if (gamepad2.triangle) {
-            liftArmToPosition(liftArmPositionScoringTopBasket);
+            liftArmToPosition(liftArmPositionScoringTopBasket, 0.30);
         }else if (gamepad2.circle) {
-            liftArmToPosition(liftArmPositionScoringBottomBasket);
+            liftArmToPosition(liftArmPositionScoringBottomBasket, 0.30);
         } else if (gamepad2.x) { // the square button on the PS4
-            liftArmToPosition(liftArmPositionPickupUnderSub);
+            liftArmToPosition(liftArmPositionPickupUnderSub, 0.30);
         } else if (gamepad2.cross) { // the x button on the PS4
-            liftArmToPosition(liftArmPositionLowerPosition);
+            liftArmToPosition(liftArmPositionLowerPosition, 0.30);
         } else if (gamepad2.dpad_down) {
-            liftArmToPosition(liftArmPositionTuckedIn);
+            liftArmToPosition(liftArmPositionTuckedIn, 0.30);
         } else if (gamepad2.dpad_right) {
             liftArmIncrement(true);
         } else if (gamepad2.dpad_left) {
             liftArmIncrement(false);
+        } else if (gamepad2.touchpad) {
+            liftArmToPosition(liftArmPositionClimbLowerRung,0.3);
+        } else if (gamepad2.right_bumper) {
+            liftArmToPosition(liftArmPositionClimbLowerRung, 0.3);
         }
 
         // if the armPower is greater than 0, the arm will extend out. If the armPower is less than 0,
@@ -100,10 +106,10 @@ public class SimpleTeleOpArcade extends OpMode {
         updateTelemetry();
     }
 
-    private void liftArmToPosition(int position) {
+    private void liftArmToPosition(int position, double power) {
         liftArmMotor.setTargetPosition(position);
         liftArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        liftArmMotor.setPower(0.30);
+        liftArmMotor.setPower(power);
     }
     private void liftArmIncrement(boolean isMovingUp) {
         // increments the lift arm motor by 10, but first checks if the arm should be moved
@@ -113,12 +119,12 @@ public class SimpleTeleOpArcade extends OpMode {
         int currentPosition = liftArmMotor.getCurrentPosition();
         int increment = 10;
         if (isMovingUp) {
-            if ((currentPosition + increment) <= liftArmPositionClimbLowerRung) {
-                liftArmToPosition(currentPosition + increment);
+            if ((currentPosition + increment) <= liftArmPositionMaxTall) {
+                liftArmToPosition(currentPosition + increment, 0.30);
             }
         } else {
             if (currentPosition - increment >= liftArmPositionTuckedIn) {
-                liftArmToPosition(currentPosition - increment);
+                liftArmToPosition(currentPosition - increment,0.30);
             }
         }
     }
